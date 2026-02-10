@@ -1,8 +1,6 @@
 # Focus Timer IoT
 
-A sleek "heads down" focus timer system using a PowerVision PV500 HMI display and a Raspberry Pi Zero 2 W with servo-controlled physical indicator.
-
-![Focus Timer Concept](docs/concept.png)
+A sleek "heads down" focus timer system using a **SenseCAP Indicator** touchscreen display and a **Raspberry Pi Zero 2 W** with servo-controlled physical indicator.
 
 ## Overview
 
@@ -12,59 +10,70 @@ When you need uninterrupted focus time, start the timer and a physical servo rot
 
 | Component | Purpose |
 |-----------|---------|
-| **PowerVision PV500** | 5" HMI display with countdown timer UI |
-| **Raspberry Pi Zero 2 W** | Reads digital signal, controls servo |
-| **Pimoroni Inventor HAT Mini** | GPIO breakout with servo headers |
+| **SenseCAP Indicator D1101** | 4" touchscreen with ESP32-S3 |
+| **Raspberry Pi Zero 2 W** | Reads I2C, controls servo |
+| **Pimoroni Inventor HAT Mini** | QW/ST (Qwiic) I2C + servo headers |
 | **GeekServo 360° Continuous** | Rotates physical indicator |
 
 ## System Architecture
 
 ```
-┌─────────────────────┐         ┌─────────────────────┐
-│   PowerVision PV500 │         │  Raspberry Pi Zero  │
-│                     │         │  + Inventor HAT Mini│
-│  ┌───────────────┐  │  GPIO   │  ┌───────────────┐  │
-│  │ Countdown     │  │ ─────►  │  │ Python Script │  │
-│  │ Timer Display │  │ (HIGH/  │  │               │  │
-│  │               │  │  LOW)   │  │ Servo Control │  │
-│  └───────────────┘  │         │  └───────┬───────┘  │
-│                     │         │          │          │
-│  [5m] [15m] [30m]   │         │          ▼          │
-│      [START]        │         │   ┌───────────┐     │
-│                     │         │   │ GeekServo │     │
-│  Digital Output ────┼─────────┼──►│  360° CW  │     │
-└─────────────────────┘         │   └───────────┘     │
-                                └─────────────────────┘
+┌─────────────────────┐    I2C    ┌─────────────────────┐
+│  SenseCAP Indicator │  ─────►  │  Raspberry Pi Zero  │
+│                     │  (QW/ST) │  + Inventor HAT Mini│
+│  ┌───────────────┐  │          │                     │
+│  │ Countdown     │  │          │  Python script      │
+│  │ Timer Display │  │          │  polls I2C status   │
+│  │               │  │          │                     │
+│  │   "5:00"      │  │          │  Controls servo     │
+│  └───────────────┘  │          │  based on timer     │
+│                     │          │                     │
+│  [5m] [15m] [30m]   │          │      ┌───────┐      │
+│      [START]        │          │      │ Servo │      │
+│                     │          │      └───────┘      │
+│  Grove ──► I2C ─────┼──────────┼──► QW/ST            │
+└─────────────────────┘          └─────────────────────┘
+
+I2C Address: 0x42
+Registers: [status, minutes, seconds]
 ```
 
-## Wiring Diagram
+## UI Preview (SenseCAP Indicator)
 
-See [docs/wiring-diagram.md](docs/wiring-diagram.md) for complete pinout.
-
-### Quick Reference
-
-**PV500 Digital Output → Pi GPIO:**
 ```
-PV500 DO1+ ────────► Pi GPIO 26 (via Inventor HAT)
-PV500 DO1- ────────► Pi GND
-```
-
-**Servo Connection (Inventor HAT Mini Servo 1):**
-```
-Servo Red ─────────► 5V (Servo header)
-Servo Brown ───────► GND (Servo header)  
-Servo Orange ──────► Signal (Servo header S1)
+┌─────────────────────────────────────────┐
+│                                   480px │
+│                                         │
+│            Heads down.                  │
+│                                         │
+│           Be back in                    │
+│                                         │
+│              5:00                       │
+│                                         │
+│    ┌────────┐ ┌────────┐ ┌────────┐     │
+│    │  5 min │ │ 15 min │ │ 30 min │     │
+│    └────────┘ └────────┘ └────────┘     │
+│                                         │
+│           ┌────────────┐                │
+│           │   START    │                │
+│           └────────────┘                │
+│                                   480px │
+└─────────────────────────────────────────┘
 ```
 
 ## Quick Start
 
-### 1. PowerVision PV500 Setup
+### 1. Flash SenseCAP Indicator
 
-1. Open PowerVision Builder
-2. Import project from `powervision/focus-timer.pvproj`
-3. Build and deploy to PV500
+See [sensecap-indicator/SETUP.md](sensecap-indicator/SETUP.md) for detailed instructions.
 
-### 2. Raspberry Pi Setup
+**Quick version (PlatformIO):**
+```bash
+cd sensecap-indicator
+pio run -t upload
+```
+
+### 2. Setup Raspberry Pi
 
 ```bash
 # Clone this repo
@@ -72,65 +81,76 @@ git clone https://github.com/thompcd/focus-timer-iot.git
 cd focus-timer-iot/raspberry-pi
 
 # Install dependencies
-pip3 install inventorhatmini gpiozero
+pip3 install inventorhatmini smbus2
 
-# Run the servo controller
+# Run the controller
 python3 focus_servo.py
 ```
 
 ### 3. Wire It Up
 
-Connect PV500 digital output to Pi GPIO 26 (see wiring diagram).
+Connect SenseCAP Grove → Inventor HAT QW/ST (Qwiic):
+
+| SenseCAP Grove | Inventor HAT QW/ST |
+|----------------|-------------------|
+| GND (Black) | GND (Black) |
+| VCC (Red) | 3V3 (Red) |
+| SDA (White) | SDA (Blue) |
+| SCL (Yellow) | SCL (Yellow) |
+
+Connect servo to Inventor HAT Servo 1 header.
+
+See [docs/wiring-diagram.md](docs/wiring-diagram.md) for complete pinouts.
 
 ### 4. Test
 
-1. Press **5m** on PV500, then **START**
-2. Servo should rotate to 180°
-3. When timer expires, servo returns to 0°
+1. Power on both devices
+2. Press **5 min** on SenseCAP, then **START**
+3. Servo should rotate to active position
+4. When timer expires (or press **STOP**), servo returns to rest
 
 ## Project Structure
 
 ```
 focus-timer-iot/
 ├── README.md
-├── powervision/
-│   ├── focus-timer.pvproj      # PowerVision Builder project
-│   ├── screens/
-│   │   └── main-screen.md      # Screen layout documentation
-│   └── variables.md            # Variable definitions
+├── sensecap-indicator/
+│   ├── src/main.cpp        # ESP32-S3 Arduino code
+│   ├── platformio.ini      # PlatformIO configuration
+│   └── SETUP.md            # Upload instructions
 ├── raspberry-pi/
-│   ├── focus_servo.py          # Main Python script
-│   ├── requirements.txt        # Python dependencies
+│   ├── focus_servo.py      # Python I2C + servo controller
+│   ├── requirements.txt    # Python dependencies
+│   ├── SETUP.md            # Pi setup guide
 │   └── systemd/
-│       └── focus-timer.service # Auto-start service
+│       └── focus-timer.service
 └── docs/
-    ├── wiring-diagram.md       # Complete pinout
-    ├── bom.md                  # Bill of materials
-    └── troubleshooting.md      # Common issues
+    ├── wiring-diagram.md   # Complete pinouts
+    ├── bom.md              # Bill of materials
+    └── troubleshooting.md  # Common issues
 ```
 
-## UI Preview (PV500)
+## I2C Protocol
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                           800px │
-│                                                                 │
-│                      Heads down.                                │
-│                                                                 │
-│                   Be back in                                    │
-│                                                                 │
-│                     5:00                                        │
-│                                                                 │
-│                                                                 │
-│    ┌──────────┐   ┌──────────┐   ┌──────────┐                   │
-│    │   5 min  │   │  15 min  │   │  30 min  │                   │
-│    └──────────┘   └──────────┘   └──────────┘                   │
-│                                                                 │
-│                      ┌──────────┐                               │
-│                      │  START   │                               │
-│                      └──────────┘                               │
-│                                                           480px │
-└─────────────────────────────────────────────────────────────────┘
+The SenseCAP Indicator acts as an I2C slave (address `0x42`):
+
+| Register | Address | Description |
+|----------|---------|-------------|
+| STATUS | 0x00 | 0 = stopped, 1 = running |
+| MINUTES | 0x01 | Minutes remaining (0-99) |
+| SECONDS | 0x02 | Seconds remaining (0-59) |
+
+The Pi polls these registers and controls the servo accordingly.
+
+## Verify I2C Connection
+
+```bash
+# On Raspberry Pi
+sudo i2cdetect -y 1
+
+# Should show:
+#      0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+# 40: -- -- 42 -- -- -- -- -- -- -- -- -- -- -- -- --
 ```
 
 ## License

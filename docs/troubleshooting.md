@@ -2,121 +2,132 @@
 
 ## Common Issues
 
-### 1. Servo Doesn't Move
+### 1. I2C Device Not Found (0x42 missing)
 
-**Symptoms:** Timer starts on PV500, but servo stays still.
+**Symptom:** `i2cdetect` doesn't show address 0x42
+
+```bash
+sudo i2cdetect -y 1
+# Expected:
+#      0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+# 40: -- -- 42 -- -- -- -- -- -- -- -- -- -- -- -- --
+```
 
 **Checks:**
-1. **Servo power**: Is the servo connected to Inventor HAT Servo 1 header?
-   ```
-   Red wire → (+)
-   Brown wire → (-)
-   Orange wire → (S)
+
+1. **SenseCAP running?**
+   - Is the focus timer code uploaded and running?
+   - Check for display showing the timer UI
+
+2. **Cable connected?**
+   - Grove connector seated on SenseCAP
+   - QW/ST connector seated on Inventor HAT
+   - Check for bent/damaged pins
+
+3. **Correct cable?**
+   - Grove to Qwiic adapter (not Grove to Grove)
+   - Wire mapping: GND-GND, VCC-3V3, SDA-SDA, SCL-SCL
+
+4. **I2C enabled on Pi?**
+   ```bash
+   sudo raspi-config
+   # Interface Options → I2C → Enable
+   sudo reboot
    ```
 
-2. **Python script running?**
+5. **Check I2C bus:**
    ```bash
-   ps aux | grep focus_servo
+   ls /dev/i2c*
+   # Should show /dev/i2c-1
    ```
+
+### 2. Servo Doesn't Move
+
+**Symptom:** Timer starts but servo stays still.
+
+**Checks:**
+
+1. **Servo connections:**
+   ```
+   Orange → S (Signal)
+   Red    → + (5V)
+   Brown  → - (GND)
+   ```
+
+2. **Correct header?** Must be Servo 1 (not Servo 2)
 
 3. **Test servo directly:**
    ```python
    from inventorhatmini import InventorHATMini
    board = InventorHATMini()
-   board.servos[0].value(1.0)  # Should rotate
+   board.servos[0].value(1.0)  # Should spin
+   time.sleep(1)
+   board.servos[0].value(0)    # Stop
    ```
 
-4. **Check GPIO input:**
-   ```python
-   from gpiozero import InputDevice
-   inp = InputDevice(26, pull_up=False)
-   print(inp.value)  # Should be 1 when timer running
-   ```
+4. **Sufficient power?** Try external 5V for servo if it stutters
 
-### 2. GPIO Always Reads LOW (0)
+### 3. SenseCAP Display Issues
 
-**Symptoms:** Servo never activates even when PV500 timer is running.
+**Blank/white screen:**
+- Check TFT_eSPI configuration (User_Setup.h)
+- Verify pin definitions match your SenseCAP model
+- Try different SPI frequency
 
-**Checks:**
-1. **Wiring:**
-   - Is PV500 DO1+ connected through level shifter to GPIO 26?
-   - Is there a common ground between PV500 and Pi?
+**Touch not responding:**
+- SenseCAP uses capacitive touch (GT911 or FT5x06)
+- May need separate touch library initialization
+- Check touch I2C address conflicts
 
-2. **Level shifter:**
-   - Check HV and LV reference voltages
-   - Verify GND connections
+**Upload fails:**
+- Hold BOOT button while clicking Upload
+- Try different USB-C cable (data capable)
+- Check COM port selection in IDE
 
-3. **PV500 output:**
-   - Use multimeter to verify DO1 goes HIGH (5V+) when timer runs
-   - Check PV500 digital output configuration
+### 4. Python Script Errors
 
-4. **Measure at GPIO:**
-   ```bash
-   # Read GPIO 26 state
-   cat /sys/class/gpio/gpio26/value
-   ```
-
-### 3. GPIO Always Reads HIGH (1)
-
-**Symptoms:** Servo is always in active position.
-
-**Checks:**
-1. **Pull configuration:** Script should use `pull_up=False`
-2. **Floating input:** Ensure level shifter is properly connected
-3. **Short circuit:** Check for shorts in wiring
-
-### 4. Servo Jitters or Moves Erratically
-
-**Symptoms:** Servo twitches instead of smooth rotation.
-
-**Causes & Fixes:**
-1. **Insufficient power:**
-   - Use external 5V supply for servo
-   - Ensure power supply can deliver enough current
-
-2. **Signal noise:**
-   - Add 0.1μF capacitor across servo power
-   - Shorten wires
-   - Use shielded cable
-
-3. **PWM frequency:**
-   - Check Inventor HAT Mini PWM settings
-
-### 5. PV500 Timer Not Working
-
-**Symptoms:** Display shows timer but buttons don't work.
-
-**Checks:**
-1. **Touch calibration:** Recalibrate touch screen in PV500 settings
-2. **Variable initialization:** Ensure variables are defined
-3. **Script errors:** Check PowerVision Builder for compile errors
-
-### 6. Python Script Crashes
-
-**Error: `ModuleNotFoundError: No module named 'inventorhatmini'`**
+**`ModuleNotFoundError: No module named 'inventorhatmini'`**
 ```bash
 pip3 install inventorhatmini
 ```
 
-**Error: `RuntimeError: Cannot determine SOC peripheral base address`**
+**`ModuleNotFoundError: No module named 'smbus2'`**
 ```bash
-# Enable I2C and SPI
-sudo raspi-config
-# Interface Options → I2C → Enable
-# Interface Options → SPI → Enable
-sudo reboot
+pip3 install smbus2
 ```
 
-**Error: `PermissionError: [Errno 13] Permission denied`**
+**`OSError: [Errno 121] Remote I/O error`**
+- I2C communication failure
+- Check cable connections
+- Verify SenseCAP is powered and running
+- Try slower I2C bus speed
+
+**`PermissionError: [Errno 13] Permission denied`**
 ```bash
-# Add user to gpio group
-sudo usermod -aG gpio $USER
+# Add user to i2c group
+sudo usermod -aG i2c $USER
 # Logout and login again
 ```
 
-### 7. Service Won't Start
+### 5. Timer Running but Servo Wrong Direction
 
-**Check service status:**
+**For continuous servos, rotation direction depends on:**
+- `value(1.0)` = full speed forward
+- `value(-1.0)` = full speed reverse
+- `value(0)` = stop
+
+**To swap directions, edit `focus_servo.py`:**
+```python
+# In go_to_active():
+self.board.servos[0].value(-1.0)  # Was 1.0
+
+# In go_to_rest():
+self.board.servos[0].value(1.0)   # Was -1.0
+```
+
+### 6. Systemd Service Won't Start
+
+**Check status:**
 ```bash
 sudo systemctl status focus-timer.service
 sudo journalctl -u focus-timer.service -f
@@ -124,31 +135,50 @@ sudo journalctl -u focus-timer.service -f
 
 **Common fixes:**
 ```bash
-# Reload systemd
+# Reload after editing service file
 sudo systemctl daemon-reload
 
-# Check file paths in service file
+# Check file paths
 cat /etc/systemd/system/focus-timer.service
 
-# Check permissions
-ls -la /home/pi/focus-timer-iot/raspberry-pi/focus_servo.py
-chmod +x /home/pi/focus-timer-iot/raspberry-pi/focus_servo.py
+# Ensure script is executable
+chmod +x ~/focus-timer-iot/raspberry-pi/focus_servo.py
 ```
 
 ---
 
 ## Diagnostic Commands
 
-### Test GPIO Input
+### Scan I2C Bus
+```bash
+sudo i2cdetect -y 1
+```
+
+### Test I2C Read from SenseCAP
 ```python
 #!/usr/bin/env python3
-from gpiozero import InputDevice
+import smbus2
 import time
 
-inp = InputDevice(26, pull_up=False)
-print("Monitoring GPIO 26 (Ctrl+C to exit)...")
+bus = smbus2.SMBus(1)
+address = 0x42
+
 while True:
-    print(f"GPIO 26: {'HIGH' if inp.value else 'LOW'}")
+    try:
+        bus.write_byte(address, 0x00)  # Status register
+        status = bus.read_byte(address)
+        
+        bus.write_byte(address, 0x01)  # Minutes
+        mins = bus.read_byte(address)
+        
+        bus.write_byte(address, 0x02)  # Seconds
+        secs = bus.read_byte(address)
+        
+        running = "RUNNING" if status else "STOPPED"
+        print(f"Timer: {running} - {mins}:{secs:02d}")
+    except Exception as e:
+        print(f"Error: {e}")
+    
     time.sleep(0.5)
 ```
 
@@ -162,7 +192,7 @@ board = InventorHATMini()
 servo = board.servos[0]
 
 print("Testing servo...")
-print("Forward")
+print("Forward 1 second")
 servo.value(1.0)
 time.sleep(1)
 
@@ -170,47 +200,78 @@ print("Stop")
 servo.value(0)
 time.sleep(1)
 
-print("Reverse")
+print("Reverse 1 second")
 servo.value(-1.0)
 time.sleep(1)
 
 print("Stop")
 servo.value(0)
-print("Done")
+print("Done!")
 ```
 
-### Check I2C Devices
+### Check GPIO/I2C Kernel Modules
 ```bash
-# Inventor HAT Mini uses I2C
-sudo i2cdetect -y 1
+lsmod | grep i2c
+# Should show: i2c_bcm2835, i2c_dev
 ```
 
-### Monitor System Logs
+### View Serial Output from SenseCAP
 ```bash
-# Watch for GPIO/hardware errors
-dmesg -w
-
-# Watch Python script output
-sudo journalctl -u focus-timer.service -f
+# After connecting USB
+screen /dev/ttyACM0 115200
+# or
+pio device monitor
 ```
 
 ---
 
-## LED Indicators (Inventor HAT Mini)
+## LED Debugging (Inventor HAT Mini)
 
-The Inventor HAT Mini has onboard LEDs. You can use them for debugging:
+Add visual feedback to the Python script:
 
 ```python
-# Add to focus_servo.py for visual feedback
-board.leds[0].on()   # LED 1 on when signal HIGH
-board.leds[0].off()  # LED 1 off when signal LOW
+# In FocusTimerController.__init__():
+self.board.leds[0].off()  # LED 1 = I2C status
+self.board.leds[1].off()  # LED 2 = Timer status
+
+# In run loop:
+if self.timer.connected:
+    self.board.leds[0].on()   # I2C connected
+else:
+    self.board.leds[0].off()  # I2C disconnected
+
+if status and status['running']:
+    self.board.leds[1].on()   # Timer running
+else:
+    self.board.leds[1].off()  # Timer stopped
+```
+
+---
+
+## Factory Reset
+
+### SenseCAP Indicator
+1. Hold BOOT button
+2. Press and release RESET button
+3. Release BOOT button
+4. Upload fresh firmware
+
+### Raspberry Pi
+```bash
+# Reinstall dependencies
+pip3 uninstall inventorhatmini smbus2
+pip3 install inventorhatmini smbus2
+
+# Reset I2C
+sudo modprobe -r i2c_bcm2835
+sudo modprobe i2c_bcm2835
 ```
 
 ---
 
 ## Getting Help
 
-1. **Check logs first:** Most issues are visible in `journalctl`
-2. **Simplify:** Test each component independently
-3. **Measure:** Use multimeter to verify voltages
-4. **GitHub Issues:** File an issue with logs and wiring photos
+1. **Check logs:** `journalctl -u focus-timer.service`
+2. **Serial monitor:** Both Pi and SenseCAP output debug info
+3. **Simplify:** Test each component independently
+4. **GitHub Issues:** Include logs, wiring photos, and component versions

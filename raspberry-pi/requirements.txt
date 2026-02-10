@@ -3,8 +3,8 @@
 # Pimoroni Inventor HAT Mini library
 inventorhatmini>=1.0.0
 
-# GPIO Zero for clean GPIO handling
-gpiozero>=1.6.2
+# I2C communication
+smbus2>=0.4.0
 
-# RPi.GPIO (usually pre-installed on Raspberry Pi OS)
+# Optional but recommended
 RPi.GPIO>=0.7.0

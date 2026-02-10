@@ -3,19 +3,26 @@
 Focus Timer Servo Controller
 ============================
 
-Reads digital input from PowerVision PV500 and controls a GeekServo 360°
+Reads timer state via I2C from SenseCAP Indicator and controls a GeekServo 360°
 continuous rotation servo via Pimoroni Inventor HAT Mini.
 
-When input is HIGH: Servo rotates to 180° (focus mode active)
-When input is LOW:  Servo returns to 0° (rest position)
+I2C Protocol (SenseCAP as slave):
+- Address: 0x42
+- Register 0x00: Timer status (0 = stopped, 1 = running)
+- Register 0x01: Minutes remaining
+- Register 0x02: Seconds remaining
+
+When timer is running: Servo rotates to 180° (focus mode active)
+When timer is stopped: Servo returns to 0° (rest position)
 
 Hardware:
 - Raspberry Pi Zero 2 W
-- Pimoroni Inventor HAT Mini
+- Pimoroni Inventor HAT Mini (QW/ST connector for I2C)
+- SenseCAP Indicator D1101 (via I2C)
 - GeekServo 360° Continuous (3-wire)
 
 Wiring:
-- PV500 DO1 → GPIO 26 (via level shifter if needed)
+- SenseCAP Grove → Inventor HAT QW/ST (Qwiic) connector
 - Servo → Inventor HAT Mini Servo 1 header
 """
 
@@ -23,57 +30,101 @@ import time
 import sys
 
 try:
-    from gpiozero import InputDevice
+    import smbus2
     from inventorhatmini import InventorHATMini
 except ImportError as e:
     print(f"Missing dependency: {e}")
-    print("Install with: pip3 install inventorhatmini gpiozero")
+    print("Install with: pip3 install inventorhatmini smbus2")
     sys.exit(1)
 
 # ============================================
 # Configuration
 # ============================================
 
-# GPIO pin for PV500 digital input (directly from PV500 via level shifter to 3.3V)
-SIGNAL_PIN = 26
+# I2C address of SenseCAP Indicator
+I2C_ADDRESS = 0x42
+I2C_BUS = 1  # /dev/i2c-1 on Raspberry Pi
 
-# Servo positions (for 360° continuous servo, these control direction/speed)
-# Note: Continuous servos interpret position as speed/direction
-# 0 = full speed one direction, 90 = stop, 180 = full speed other direction
-SERVO_REST = 0        # Rest position (or stopped for continuous)
-SERVO_ACTIVE = 180    # Active position (or opposite direction for continuous)
+# I2C register addresses
+REG_STATUS = 0x00   # 0 = stopped, 1 = running
+REG_MINUTES = 0x01  # Minutes remaining
+REG_SECONDS = 0x02  # Seconds remaining
 
-# For a CONTINUOUS servo (360°), we actually need to:
-# - Run at speed to reach position, then stop
-# - Use timing to determine rotation amount
-ROTATION_TIME = 0.5   # Seconds to rotate (adjust based on servo speed)
+# Servo timing for continuous rotation servo
+ROTATION_TIME = 0.5  # Seconds to rotate (adjust based on servo speed)
 
-# Debounce time to avoid rapid switching
-DEBOUNCE_MS = 100
+# Polling interval
+POLL_INTERVAL_MS = 100
 
 # ============================================
-# Servo Control for Continuous Rotation Servo
+# I2C Communication
+# ============================================
+
+class SenseCapTimer:
+    """Reads timer state from SenseCAP Indicator via I2C."""
+    
+    def __init__(self, bus_num: int = I2C_BUS, address: int = I2C_ADDRESS):
+        self.address = address
+        self.bus = None
+        self.connected = False
+        
+        try:
+            self.bus = smbus2.SMBus(bus_num)
+            # Test connection
+            self._read_register(REG_STATUS)
+            self.connected = True
+            print(f"[I2C] Connected to SenseCAP at 0x{address:02X}")
+        except Exception as e:
+            print(f"[I2C] Failed to connect: {e}")
+            print("[I2C] Will retry on each read...")
+    
+    def _read_register(self, register: int) -> int:
+        """Read a single byte from a register."""
+        # Write register address, then read one byte
+        self.bus.write_byte(self.address, register)
+        time.sleep(0.001)  # Small delay for I2C
+        return self.bus.read_byte(self.address)
+    
+    def get_status(self) -> dict:
+        """
+        Get current timer status.
+        
+        Returns:
+            dict with keys: running (bool), minutes (int), seconds (int)
+            Returns None if communication fails.
+        """
+        try:
+            status = self._read_register(REG_STATUS)
+            minutes = self._read_register(REG_MINUTES)
+            seconds = self._read_register(REG_SECONDS)
+            
+            if not self.connected:
+                self.connected = True
+                print("[I2C] Connection restored")
+            
+            return {
+                'running': status == 1,
+                'minutes': minutes,
+                'seconds': seconds
+            }
+        except Exception as e:
+            if self.connected:
+                print(f"[I2C] Communication error: {e}")
+                self.connected = False
+            return None
+
+
+# ============================================
+# Servo Control
 # ============================================
 
 class FocusServo:
     """Controls the focus indicator servo."""
     
     def __init__(self, board: InventorHATMini, servo_num: int = 1):
-        """
-        Initialize servo controller.
-        
-        Args:
-            board: InventorHATMini instance
-            servo_num: Servo port number (1 or 2)
-        """
         self.board = board
         self.servo_num = servo_num
-        self.current_position = "rest"
-        
-        # For continuous servo:
-        # - Value < 0: Rotate one direction
-        # - Value = 0: Stop
-        # - Value > 0: Rotate other direction
+        self.current_position = "unknown"
         
         print(f"[SERVO] Initialized on port {servo_num}")
         self.go_to_rest()
@@ -83,30 +134,28 @@ class FocusServo:
         if self.current_position == "rest":
             return
             
-        print("[SERVO] Rotating to REST position (0°)")
+        print("[SERVO] Rotating to REST position")
         
         # For continuous servo: rotate backwards
-        self.board.servos[self.servo_num - 1].value(-1.0)  # Full speed reverse
+        self.board.servos[self.servo_num - 1].value(-1.0)
         time.sleep(ROTATION_TIME)
-        self.board.servos[self.servo_num - 1].value(0)     # Stop
+        self.board.servos[self.servo_num - 1].value(0)  # Stop
         
         self.current_position = "rest"
-        print("[SERVO] At REST position")
     
     def go_to_active(self):
         """Move servo to active position (180°)."""
         if self.current_position == "active":
             return
             
-        print("[SERVO] Rotating to ACTIVE position (180°)")
+        print("[SERVO] Rotating to ACTIVE position")
         
         # For continuous servo: rotate forwards
-        self.board.servos[self.servo_num - 1].value(1.0)   # Full speed forward
+        self.board.servos[self.servo_num - 1].value(1.0)
         time.sleep(ROTATION_TIME)
-        self.board.servos[self.servo_num - 1].value(0)     # Stop
+        self.board.servos[self.servo_num - 1].value(0)  # Stop
         
         self.current_position = "active"
-        print("[SERVO] At ACTIVE position")
     
     def stop(self):
         """Stop the servo."""
@@ -118,11 +167,11 @@ class FocusServo:
 # ============================================
 
 class FocusTimerController:
-    """Main controller that monitors input and controls servo."""
+    """Main controller that polls I2C and controls servo."""
     
     def __init__(self):
         print("=" * 50)
-        print("Focus Timer Servo Controller")
+        print("Focus Timer Servo Controller (I2C)")
         print("=" * 50)
         
         # Initialize Inventor HAT Mini
@@ -132,48 +181,42 @@ class FocusTimerController:
         # Initialize servo
         self.servo = FocusServo(self.board, servo_num=1)
         
-        # Initialize GPIO input with internal pull-down
-        # (PV500 will drive HIGH when timer is running)
-        print(f"[INIT] Configuring GPIO {SIGNAL_PIN} with internal pull-down...")
-        self.signal_input = InputDevice(SIGNAL_PIN, pull_up=False)
+        # Initialize I2C connection to SenseCAP
+        print(f"[INIT] Connecting to SenseCAP at I2C address 0x{I2C_ADDRESS:02X}...")
+        self.timer = SenseCapTimer()
         
-        # Track state
-        self.last_state = False
-        self.last_change_time = 0
+        # Track last known state
+        self.last_running = False
         
-        print("[INIT] Ready! Waiting for signal from PV500...")
+        print("[INIT] Ready! Polling SenseCAP for timer state...")
         print("-" * 50)
     
-    def read_input(self) -> bool:
-        """Read the digital input state with debouncing."""
-        current_state = self.signal_input.value
-        current_time = time.time() * 1000  # ms
-        
-        # Debounce
-        if current_time - self.last_change_time < DEBOUNCE_MS:
-            return self.last_state
-        
-        if current_state != self.last_state:
-            self.last_change_time = current_time
-            self.last_state = current_state
-            
-        return current_state
-    
     def run(self):
-        """Main loop - monitor input and control servo."""
+        """Main loop - poll I2C and control servo."""
         try:
             while True:
-                signal_high = self.read_input()
+                # Read timer status
+                status = self.timer.get_status()
                 
-                if signal_high:
-                    # Timer is running - move to active position
-                    self.servo.go_to_active()
-                else:
-                    # Timer stopped - return to rest
-                    self.servo.go_to_rest()
+                if status is not None:
+                    running = status['running']
+                    
+                    # State change detection
+                    if running != self.last_running:
+                        mins = status['minutes']
+                        secs = status['seconds']
+                        
+                        if running:
+                            print(f"[TIMER] Started: {mins}:{secs:02d} remaining")
+                            self.servo.go_to_active()
+                        else:
+                            print("[TIMER] Stopped")
+                            self.servo.go_to_rest()
+                        
+                        self.last_running = running
                 
-                # Small sleep to prevent CPU spinning
-                time.sleep(0.05)
+                # Poll interval
+                time.sleep(POLL_INTERVAL_MS / 1000)
                 
         except KeyboardInterrupt:
             print("\n[EXIT] Shutting down...")

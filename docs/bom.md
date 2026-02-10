@@ -4,64 +4,69 @@
 
 | Qty | Component | Description | Approx. Cost | Link |
 |-----|-----------|-------------|--------------|------|
-| 1 | PowerVision PV500 | 5" HMI Display (800x480) | ~$300-400 | [Enovation Controls](https://www.enovationcontrols.com/displays) |
-| 1 | Raspberry Pi Zero 2 W | Quad-core ARM, WiFi | ~$15 | [Pi Foundation](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/) |
-| 1 | Pimoroni Inventor HAT Mini | GPIO breakout with servo headers | ~$22 | [Pimoroni](https://shop.pimoroni.com/products/inventor-hat-mini) |
+| 1 | SenseCAP Indicator D1101 | 4" 480x480 touchscreen, ESP32-S3 | ~$50 | [Seeed Studio](https://www.seeedstudio.com/SenseCAP-Indicator-D1101-p-5648.html) |
+| 1 | Raspberry Pi Zero 2 W | Quad-core ARM, WiFi, BT | ~$15 | [Pi Foundation](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/) |
+| 1 | Pimoroni Inventor HAT Mini | GPIO + servo headers + QW/ST | ~$22 | [Pimoroni](https://shop.pimoroni.com/products/inventor-hat-mini) |
 | 1 | GeekServo 360° Continuous | 3-wire continuous rotation servo | ~$8-15 | [Amazon](https://www.amazon.com/dp/B07MQH1JFH) |
 
-## Electronics
+## Cables & Adapters
 
 | Qty | Component | Description | Approx. Cost | Notes |
 |-----|-----------|-------------|--------------|-------|
-| 1 | Level Shifter (Bi-directional) | 4-channel 3.3V ↔ 5V | ~$5 | BSS138 or TXB0104 based |
+| 1 | Grove to Qwiic Cable | Connects SenseCAP to Inventor HAT | ~$3 | [SparkFun](https://www.sparkfun.com/products/15109) or [Seeed](https://www.seeedstudio.com/Grove-to-SparkFun-QWIIC-Cable-p-5131.html) |
 | 1 | MicroSD Card | 16GB+ Class 10 | ~$8 | For Pi OS |
-| 1 | Micro-USB Power Supply | 5V 2.5A | ~$10 | For Pi Zero |
-| 1 | Jumper Wires | Male-to-female, various | ~$5 | For prototyping |
+| 1 | USB-C Cable | For SenseCAP power | ~$5 | Included with SenseCAP |
+| 1 | Micro-USB Cable | For Pi power | ~$5 | Or use GPIO power |
 
 ## Optional
 
 | Qty | Component | Description | Approx. Cost | Notes |
 |-----|-----------|-------------|--------------|-------|
 | 1 | Pi Zero Case | Protective enclosure | ~$5-10 | Various styles |
-| 1 | Optocoupler (PC817) | For isolated signal | ~$2 | Alternative to level shifter |
-| 1 | Proto Board | For permanent build | ~$5 | Solder connections |
+| 1 | Servo Extension Cable | If needed for reach | ~$3 | Match connector type |
 | 1 | 3D Printed Enclosure | Custom housing | ~$10-20 | Print or order |
-
-## Cables & Connectors
-
-| Qty | Component | Description | Notes |
-|-----|-----------|-------------|-------|
-| 1 | 3-wire Servo Extension | If needed for reach | Match servo connector |
-| 2 | 2-pin JST Connector | For PV500 DO connection | Or use screw terminals |
-| 1 | USB-A to Micro-USB | For Pi power | Or use header power |
+| 1 | USB-C Power Supply (5V 2A) | For SenseCAP | ~$10 | If not using existing |
 
 ## Tools Needed
 
-- Soldering iron (for permanent build)
-- Wire strippers
-- Multimeter (for troubleshooting)
+- Soldering iron (optional, for permanent build)
 - Small screwdrivers
+- Multimeter (for troubleshooting)
 
 ## Estimated Total Cost
 
 | Scenario | Cost |
 |----------|------|
-| Minimum (if you have a PV500) | ~$50 |
-| Full build with new PV500 | ~$400-450 |
+| Core components only | ~$95 |
+| With cables & accessories | ~$115 |
 
 ## Sourcing Notes
 
-### PowerVision PV500
-- Contact Enovation Controls directly for quotes
-- May be available through industrial distributors
-- Check eBay/surplus for used units
+### SenseCAP Indicator
+- Available directly from [Seeed Studio](https://www.seeedstudio.com/)
+- Model D1101 includes all sensors; D1100 is display-only (cheaper)
+- Check for availability and shipping times
+
+### Grove to Qwiic Cable
+- Also called "Grove to STEMMA QT" 
+- Any 4-pin JST-SH to Grove cable works
+- Can also make custom cable with jumper wires
 
 ### Raspberry Pi Zero 2 W
 - Often in short supply
 - Check Adafruit, SparkFun, PiShop.us
-- Pi Zero (non-W) works too but no WiFi
+- Pi Zero (original) works but is slower
 
 ### GeekServo
-- Also called "LEGO compatible servo"
-- Any 360° continuous servo works
-- Standard servos need modified code (position vs speed control)
+- Also sold as "LEGO compatible continuous servo"
+- Any 360° continuous rotation servo works
+- Standard positional servos need code modification
+
+## Alternative Components
+
+| Instead of | Use | Notes |
+|------------|-----|-------|
+| SenseCAP D1101 | SenseCAP D1100 | No sensors, cheaper |
+| Pi Zero 2 W | Pi Zero W | Slower, but works |
+| Inventor HAT Mini | Direct wiring | Wire I2C to GPIO 2/3, servo to GPIO |
+| GeekServo | Any 360° servo | Match voltage (5V) |

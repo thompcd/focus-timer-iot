@@ -5,33 +5,32 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           FOCUS TIMER SYSTEM                                │
+│                         (I2C Communication)                                 │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-     ┌─────────────────────┐              ┌─────────────────────────────────┐
-     │   PowerVision PV500 │              │    Raspberry Pi Zero 2 W        │
-     │                     │              │    + Inventor HAT Mini          │
-     │   ┌─────────────┐   │              │                                 │
-     │   │   5" LCD    │   │              │   ┌───────────────────────┐     │
-     │   │  800x480    │   │              │   │   Inventor HAT Mini   │     │
-     │   └─────────────┘   │              │   │                       │     │
-     │                     │              │   │  [Servo 1] [Servo 2]  │     │
-     │   Digital Outputs   │              │   │     │                 │     │
-     │   ┌───┐ ┌───┐       │              │   │     └──────────┐      │     │
-     │   │DO1│ │DO2│ ...   │              │   │                │      │     │
-     │   └─┬─┘ └───┘       │              │   │  GPIO Header   │      │     │
-     │     │               │              │   │  ┌─────────┐   │      │     │
-     │     │               │              │   │  │ ○ ○ ○ ○ │   │      │     │
-     └─────┼───────────────┘              │   │  │ ○ ○ ○ ○ │   │      │     │
-           │                              │   └──┼─────────┼───┼──────┘     │
-           │                              │      │         │   │            │
-           │      Level Shifter           │      │  GPIO26 │   │            │
-           │      (3.3V ↔ 5V)             │      │         │   │            │
-           │   ┌─────────────┐            │      │         │   │            │
-           └───┤ HV      LV  ├────────────┼──────┘         │   │            │
-               │ GND    GND  │            │                │   │            │
-               └──────┬──────┘            └────────────────┼───┼────────────┘
-                      │                                    │   │
-                      └──────────────── GND ───────────────┘   │
+     ┌──────────────────────┐              ┌─────────────────────────────────┐
+     │  SenseCAP Indicator  │              │    Raspberry Pi Zero 2 W        │
+     │       D1101          │              │    + Inventor HAT Mini          │
+     │                      │              │                                 │
+     │   ┌──────────────┐   │              │   ┌───────────────────────┐     │
+     │   │  4" LCD      │   │              │   │   Inventor HAT Mini   │     │
+     │   │  480x480     │   │              │   │                       │     │
+     │   │  Touchscreen │   │              │   │  [Servo 1] [Servo 2]  │     │
+     │   └──────────────┘   │              │   │     │                 │     │
+     │                      │              │   │     └──────────┐      │     │
+     │   Grove Connector    │    I2C       │   │                │      │     │
+     │   ┌──────────────┐   │   ┌─────┐    │   │  ┌─────────┐   │      │     │
+     │   │ GND VCC SDA SCL│◄──┼───┤QW/ST├────┼───►│ QW/ST   │   │      │     │
+     │   └──────────────┘   │   └─────┘    │   │  │Connector│   │      │     │
+     │         │   │        │              │   │  └─────────┘   │      │     │
+     │         │   │        │              │   │                │      │     │
+     └─────────┼───┼────────┘              │   └────────────────┼──────┘     │
+               │   │                       │                    │            │
+               │   │                       └────────────────────┼────────────┘
+               │   │                                            │
+               │   └───── I2C Bus (SDA/SCL) ────────────────────┘
+               │                                                │
+               └──────────────── 3.3V + GND ────────────────────┘
                                                                │
                                                                ▼
                                                     ┌─────────────────┐
@@ -46,28 +45,70 @@
 
 ---
 
-## Component Pinouts
+## I2C Connection (QW/ST / Qwiic / STEMMA QT)
 
-### PowerVision PV500 - Digital Output Connector
+The Inventor HAT Mini has a **QW/ST** connector (compatible with Qwiic and STEMMA QT).
+The SenseCAP Indicator has a **Grove** connector for I2C.
 
+### Connector Pinouts
+
+**Grove Connector (SenseCAP Indicator):**
 ```
-PV500 I/O Connector (rear)
-┌─────────────────────────────┐
-│  DO1+  DO1-  DO2+  DO2-  ...│
-│   ●     ●     ○     ○       │
-│   │     │                   │
-│   │     └── Ground (connect to common GND)
-│   │
-│   └── Digital Output 1 (HIGH when timer running)
-│        Voltage: Configurable 5V-32V
-│        Current: Up to 500mA
-└─────────────────────────────┘
+┌─────────────────┐
+│  ●   ●   ●   ●  │
+│ GND VCC SDA SCL │
+│  Bk  Rd  Wh  Yl │  (typical Grove wire colors)
+└─────────────────┘
 ```
 
-### Pimoroni Inventor HAT Mini
+**QW/ST Connector (Inventor HAT Mini):**
+```
+┌─────────────────┐
+│  ●   ●   ●   ●  │
+│ GND 3V3 SDA SCL │
+│  Bk  Rd  Bl  Yl │  (Qwiic standard colors)
+└─────────────────┘
+```
+
+### Wiring Table
+
+| SenseCAP Grove | Wire Color | Inventor HAT QW/ST | Notes |
+|----------------|------------|-------------------|-------|
+| GND | Black | GND | Common ground |
+| VCC | Red | 3V3 | 3.3V power |
+| SDA | White | SDA (Blue) | I2C Data |
+| SCL | Yellow | SCL (Yellow) | I2C Clock |
+
+### Cable Options
+
+1. **Grove to Qwiic Adapter Cable** (recommended)
+   - Available from Seeed Studio, SparkFun, Adafruit
+   - Plug-and-play, no soldering
+
+2. **DIY Cable**
+   - Cut and splice Grove and Qwiic cables
+   - Match colors per table above
+
+3. **Direct Wiring**
+   - Use jumper wires from Grove header to QW/ST pads/header
 
 ```
-Inventor HAT Mini (Top View)
+         Grove Cable              Qwiic Cable
+    ┌────────────────┐        ┌────────────────┐
+    │ GND VCC SDA SCL│        │ GND 3V3 SDA SCL│
+    │  Bk  Rd  Wh  Yl│───────►│  Bk  Rd  Bl  Yl│
+    └────────────────┘        └────────────────┘
+        SenseCAP                 Inventor HAT
+```
+
+---
+
+## Servo Connection
+
+Connect GeekServo to **Servo 1** header on Inventor HAT Mini:
+
+```
+Inventor HAT Mini - Servo Headers
 ┌────────────────────────────────────────────┐
 │                                            │
 │  ┌──────────┐        ┌──────────┐          │
@@ -76,152 +117,178 @@ Inventor HAT Mini (Top View)
 │  │ │S│+│-│  │        │ │S│+│-│  │          │
 │  │ └─┴─┴─┘  │        │ └─┴─┴─┘  │          │
 │  └──────────┘        └──────────┘          │
-│     │ │ │               │ │ │              │
-│     │ │ └─ GND (Brown)  │ │ └─ GND         │
-│     │ └─── 5V (Red)     │ └─── 5V          │
-│     └───── Signal (Org) └───── Signal      │
+│     │ │ │                                  │
+│     │ │ └─ GND (Brown wire)                │
+│     │ └─── 5V  (Red wire)                  │
+│     └───── Sig (Orange wire)               │
 │                                            │
-│  ┌─────────────────────────────────────┐   │
-│  │          40-pin GPIO Header         │   │
-│  │  (directly maps to Pi GPIO pins)    │   │
-│  │                                     │   │
-│  │  Pin 37 = GPIO 26 ◄── PV500 Signal  │   │
-│  │  Pin 39 = GND      ◄── Common GND   │   │
-│  └─────────────────────────────────────┘   │
-│                                            │
-│           Inventor HAT Mini                │
 └────────────────────────────────────────────┘
 ```
 
-### GPIO Pin Reference (BCM Numbering)
+**GeekServo 360° Wiring:**
+
+| Servo Wire | Color | Inventor HAT Pin |
+|------------|-------|-----------------|
+| Signal | Orange | S (Signal) |
+| Power | Red | + (5V) |
+| Ground | Brown | - (GND) |
+
+---
+
+## Complete Wiring Diagram
 
 ```
-Raspberry Pi GPIO Header (relevant pins)
-┌────────────────────────────────────────┐
-│  Physical Pin    BCM GPIO    Function  │
-├────────────────────────────────────────┤
-│      37           GPIO 26    Signal IN │ ◄── PV500 DO1 (via level shifter)
-│      39           GND        Ground    │ ◄── Common ground
-│      1            3.3V       Power     │ ◄── Level shifter LV
-│      2            5V         Power     │ ◄── Level shifter HV
-└────────────────────────────────────────┘
-```
-
-### GeekServo 360° Continuous
-
-```
-GeekServo 3-Wire Cable
-┌─────────────────────────────┐
-│  Wire Color    Connection   │
-├─────────────────────────────┤
-│  Red           5V Power     │ → Inventor HAT Servo 1 (+)
-│  Brown         Ground       │ → Inventor HAT Servo 1 (-)
-│  Orange        Signal/PWM   │ → Inventor HAT Servo 1 (S)
-└─────────────────────────────┘
-
-Note: This is a CONTINUOUS rotation servo
-- PWM signal controls SPEED and DIRECTION, not position
-- 0% duty cycle = full speed one direction
-- 50% duty cycle = stopped
-- 100% duty cycle = full speed opposite direction
+                    ┌─────────────────────────────┐
+                    │     SenseCAP Indicator      │
+                    │         D1101               │
+                    │                             │
+                    │  ┌───────────────────────┐  │
+                    │  │     4" Touchscreen    │  │
+                    │  │       480x480         │  │
+                    │  │                       │  │
+                    │  │    "Heads down."      │  │
+                    │  │    "Be back in"       │  │
+                    │  │        5:00           │  │
+                    │  │                       │  │
+                    │  │  [5m] [15m] [30m]     │  │
+                    │  │      [START]          │  │
+                    │  │                       │  │
+                    │  └───────────────────────┘  │
+                    │                             │
+                    │  Grove I2C ──┐              │
+                    └──────────────┼──────────────┘
+                                   │
+                         ┌─────────┴─────────┐
+                         │ Grove-to-Qwiic    │
+                         │ Adapter Cable     │
+                         │                   │
+                         │  GND ─── GND      │
+                         │  VCC ─── 3V3      │
+                         │  SDA ─── SDA      │
+                         │  SCL ─── SCL      │
+                         └─────────┬─────────┘
+                                   │
+    ┌──────────────────────────────┴────────────────────────────────┐
+    │                     Raspberry Pi Zero 2 W                      │
+    │                   + Inventor HAT Mini                          │
+    │                                                                │
+    │  ┌────────────────────────────────────────────────────────┐    │
+    │  │                  Inventor HAT Mini                     │    │
+    │  │                                                        │    │
+    │  │   ┌──────┐  ┌──────┐        ┌───────────────────────┐  │    │
+    │  │   │QW/ST │◄─┤ I2C  │        │      SERVO 1          │  │    │
+    │  │   │ Port │  │ Bus  │        │   ┌───┬───┬───┐       │  │    │
+    │  │   └──────┘  └──────┘        │   │ S │ + │ - │       │  │    │
+    │  │                             │   └─┬─┴─┬─┴─┬─┘       │  │    │
+    │  │   I2C Address: 0x42         │     │   │   │         │  │    │
+    │  │   (SenseCAP slave)          │     │   │   │         │  │    │
+    │  │                             └─────┼───┼───┼─────────┘  │    │
+    │  │                                   │   │   │            │    │
+    │  └───────────────────────────────────┼───┼───┼────────────┘    │
+    │                                      │   │   │                 │
+    └──────────────────────────────────────┼───┼───┼─────────────────┘
+                                           │   │   │
+                                           │   │   │
+                                    ┌──────┴───┴───┴──────┐
+                                    │     GeekServo       │
+                                    │   360° Continuous   │
+                                    │                     │
+                                    │   Orange ── Signal  │
+                                    │   Red ───── 5V      │
+                                    │   Brown ─── GND     │
+                                    │                     │
+                                    │   ┌───────────┐     │
+                                    │   │  Rotates  │     │
+                                    │   │  physical │     │
+                                    │   │ indicator │     │
+                                    │   └───────────┘     │
+                                    └─────────────────────┘
 ```
 
 ---
 
-## Level Shifter Wiring
+## I2C Protocol
 
-**Required because:** PV500 outputs 5V-32V, Pi GPIO is 3.3V tolerant only.
+The SenseCAP Indicator acts as an I2C **slave** device.
+The Raspberry Pi is the I2C **master**.
 
-### Using Bi-directional Level Shifter (e.g., BSS138-based)
+**I2C Address:** `0x42`
 
+**Registers:**
+
+| Register | Address | Description | Values |
+|----------|---------|-------------|--------|
+| STATUS | 0x00 | Timer running state | 0 = stopped, 1 = running |
+| MINUTES | 0x01 | Minutes remaining | 0-99 |
+| SECONDS | 0x02 | Seconds remaining | 0-59 |
+
+**Read Sequence:**
 ```
-                ┌─────────────────┐
-  PV500 DO1+ ───┤ HV1         LV1 ├─── Pi GPIO 26
-                │                 │
-  PV500 5V   ───┤ HV          LV  ├─── Pi 3.3V
-  (or ext 5V)   │                 │
-                │                 │
-  Common GND ───┤ GND        GND  ├─── Pi GND
-                └─────────────────┘
-```
-
-### Alternative: Voltage Divider (simple, input-only)
-
-```
-                    R1 (10kΩ)
-  PV500 DO1+ ───────/\/\/\───┬─── Pi GPIO 26
-                              │
-                    R2 (20kΩ) │
-  Common GND ─────────/\/\/\──┘
-
-  Voltage: 5V × (20k / 30k) = 3.33V ✓
+1. Pi sends: [0x42] [register_addr]  (write register pointer)
+2. Pi reads: [0x42] [data_byte]      (read register value)
 ```
 
-### Alternative: Optocoupler (isolated)
-
-```
-  PV500 DO1+ ───┐
-                │   ┌────────────┐
-             R 330Ω │            │
-                │   │  PC817     │
-                ├───┤ LED    OUT ├─── Pi GPIO 26 (with pull-up)
-                │   │            │
-  PV500 GND ────┴───┤ GND    GND ├─── Pi GND
-                    └────────────┘
-```
-
----
-
-## Complete Wiring Table
-
-| From | To | Wire Color | Notes |
-|------|-----|------------|-------|
-| PV500 DO1+ | Level Shifter HV1 | Any | Signal wire |
-| PV500 DO1- | Common GND | Black | Ground reference |
-| Level Shifter LV1 | Pi GPIO 26 (Pin 37) | Any | 3.3V signal |
-| Level Shifter HV | PV500 5V or external 5V | Red | High voltage reference |
-| Level Shifter LV | Pi 3.3V (Pin 1) | Red | Low voltage reference |
-| Level Shifter GND | Common GND | Black | Ground |
-| GeekServo Red | Inventor HAT Servo 1 (+) | Red | 5V power |
-| GeekServo Brown | Inventor HAT Servo 1 (-) | Brown | Ground |
-| GeekServo Orange | Inventor HAT Servo 1 (S) | Orange | PWM signal |
-| Pi GND (Pin 39) | Common GND | Black | System ground |
-
----
-
-## Internal Pull Configuration
-
-The Python script configures GPIO 26 with an internal **pull-down** resistor:
-
+**Example (Python):**
 ```python
-from gpiozero import InputDevice
-signal_input = InputDevice(26, pull_up=False)  # Internal pull-down enabled
-```
+import smbus2
 
-This means:
-- When PV500 DO1 is LOW (timer stopped): GPIO reads LOW (0)
-- When PV500 DO1 is HIGH (timer running): GPIO reads HIGH (1)
+bus = smbus2.SMBus(1)
+address = 0x42
+
+# Read status register
+bus.write_byte(address, 0x00)  # Select register 0
+status = bus.read_byte(address)  # Read value
+
+print(f"Timer running: {status == 1}")
+```
 
 ---
 
 ## Power Requirements
 
-| Component | Voltage | Current | Notes |
-|-----------|---------|---------|-------|
-| Pi Zero 2 W | 5V | ~400mA | Via micro-USB |
-| Inventor HAT Mini | 5V (from Pi) | ~50mA | Servo power separate |
-| GeekServo | 5V | ~200mA | Continuous rotation |
-| PV500 | 9-32V DC | ~500mA | Check spec sheet |
+| Component | Voltage | Current | Power Source |
+|-----------|---------|---------|--------------|
+| Pi Zero 2 W | 5V | ~400mA | USB-C or GPIO |
+| Inventor HAT Mini | 5V (from Pi) | ~50mA | Pi GPIO |
+| GeekServo | 5V | ~200mA | Inventor HAT |
+| SenseCAP Indicator | 5V | ~300mA | USB-C (separate) |
 
-**Servo Power Note:** The Inventor HAT Mini powers servos from its onboard regulator (5V). For high-torque servos, you may need external 5V power connected to the servo header.
+**Note:** The SenseCAP Indicator has its own USB-C power input.
+Do NOT try to power it from the Pi.
 
 ---
 
-## Troubleshooting Wiring
+## Troubleshooting
 
-| Symptom | Check |
-|---------|-------|
-| Servo doesn't move | Verify servo connections to Inventor HAT |
-| Pi doesn't detect signal | Check level shifter wiring, verify voltages |
-| Erratic servo behavior | Check for common ground between all components |
-| Pi GPIO damaged | Level shifter may have failed or is wired wrong |
+### I2C Device Not Found
+
+```bash
+# Scan I2C bus
+sudo i2cdetect -y 1
+
+# Should show 0x42:
+#      0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+# 40: -- -- 42 -- -- -- -- -- -- -- -- -- -- -- -- --
+```
+
+If 0x42 not found:
+- Check cable connections
+- Verify SenseCAP is running the focus timer firmware
+- Check Grove/Qwiic cable orientation
+
+### Servo Not Moving
+
+1. Check servo connections to Servo 1 header
+2. Verify servo wire colors match documentation
+3. Test servo directly:
+   ```python
+   from inventorhatmini import InventorHATMini
+   board = InventorHATMini()
+   board.servos[0].value(1.0)  # Should spin
+   ```
+
+### I2C Errors
+
+- Ensure I2C is enabled: `sudo raspi-config` → Interface Options → I2C
+- Check for conflicting I2C addresses
+- Try slower I2C speed if getting errors
