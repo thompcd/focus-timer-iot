@@ -1,0 +1,10 @@
+# Focus Timer Servo Controller Dependencies
+
+# Pimoroni Inventor HAT Mini library
+inventorhatmini>=1.0.0
+
+# GPIO Zero for clean GPIO handling
+gpiozero>=1.6.2
+
+# RPi.GPIO (usually pre-installed on Raspberry Pi OS)
+RPi.GPIO>=0.7.0
