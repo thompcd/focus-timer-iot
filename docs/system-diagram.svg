@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <defs>
+    <style>
+      .title { font-family: 'Comic Sans MS', cursive; font-size: 24px; fill: #2d3748; }
+      .label { font-family: 'Comic Sans MS', cursive; font-size: 14px; fill: #4a5568; }
+      .small { font-family: 'Comic Sans MS', cursive; font-size: 11px; fill: #718096; }
+      .wire { stroke: #f6ad55; stroke-width: 4; fill: none; stroke-linecap: round; }
+      .data { font-family: monospace; font-size: 10px; fill: #805ad5; }
+    </style>
+    <!-- Squiggly line pattern for wires -->
+    <filter id="squiggle">
+      <feTurbulence baseFrequency="0.02" numOctaves="3" result="noise" seed="5"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="500" fill="#faf5ff"/>
+  
+  <!-- Title -->
+  <text x="400" y="35" text-anchor="middle" class="title">🎯 The Focus Timer Contraption 🎯</text>
+  <text x="400" y="55" text-anchor="middle" class="small">(A Rube Goldberg Approach to Productivity)</text>
+  
+  <!-- Step 1: Human touches screen -->
+  <g transform="translate(50, 80)">
+    <!-- Human hand -->
+    <text x="30" y="0" font-size="40">👆</text>
+    <text x="0" y="60" class="label">1. Human needs</text>
+    <text x="0" y="75" class="label">focus time!</text>
+    
+    <!-- Arrow -->
+    <path d="M 70 30 Q 100 30 120 50" class="wire" marker-end="url(#arrow)"/>
+  </g>
+  
+  <!-- Step 2: SenseCAP Indicator -->
+  <g transform="translate(150, 100)">
+    <!-- Screen body -->
+    <rect x="0" y="0" width="140" height="140" rx="10" fill="#1a202c" stroke="#4a5568" stroke-width="3"/>
+    <rect x="8" y="8" width="124" height="100" rx="5" fill="#2d3748"/>
+    
+    <!-- Screen content -->
+    <text x="70" y="35" text-anchor="middle" fill="#e2e8f0" font-family="monospace" font-size="10">Heads down.</text>
+    <text x="70" y="50" text-anchor="middle" fill="#a0aec0" font-family="monospace" font-size="8">Be back in</text>
+    <text x="70" y="75" text-anchor="middle" fill="#f6e05e" font-family="monospace" font-size="20">5:00</text>
+    
+    <!-- Buttons -->
+    <rect x="15" y="85" width="30" height="15" rx="3" fill="#4a5568"/>
+    <rect x="55" y="85" width="30" height="15" rx="3" fill="#4a5568"/>
+    <rect x="95" y="85" width="30" height="15" rx="3" fill="#48bb78"/>
+    <text x="30" y="96" text-anchor="middle" fill="#e2e8f0" font-size="7">5m</text>
+    <text x="70" y="96" text-anchor="middle" fill="#e2e8f0" font-size="7">15m</text>
+    <text x="110" y="96" text-anchor="middle" fill="#e2e8f0" font-size="7">GO!</text>
+    
+    <!-- Label -->
+    <text x="70" y="125" text-anchor="middle" class="small">ESP32-S3</text>
+    <text x="70" y="160" text-anchor="middle" class="label">2. SenseCAP</text>
+    <text x="70" y="175" text-anchor="middle" class="label">Indicator</text>
+    
+    <!-- Sparkles -->
+    <text x="130" y="-10" font-size="16">✨</text>
+  </g>
+  
+  <!-- Squiggly I2C Wire -->
+  <g transform="translate(290, 150)">
+    <path d="M 0 20 
+             C 30 0, 50 40, 80 20 
+             C 110 0, 130 40, 160 20
+             C 190 0, 210 40, 240 25" 
+          stroke="#f6ad55" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M 0 30 
+             C 30 10, 50 50, 80 30 
+             C 110 10, 130 50, 160 30
+             C 190 10, 210 50, 240 35" 
+          stroke="#fc8181" stroke-width="5" fill="none" stroke-linecap="round"/>
+    
+    <!-- Data packets traveling -->
+    <circle cx="60" cy="25" r="8" fill="#805ad5">
+      <animate attributeName="cx" from="0" to="240" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="120" cy="25" r="8" fill="#805ad5">
+      <animate attributeName="cx" from="0" to="240" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- Labels on wire -->
+    <text x="120" y="0" text-anchor="middle" class="data">0x42: status=1, min=5, sec=0</text>
+    <text x="120" y="60" text-anchor="middle" class="label">3. I²C Magic Tube™</text>
+    <text x="120" y="75" text-anchor="middle" class="small">(SDA + SCL)</text>
+  </g>
+  
+  <!-- Step 4: Maker Pi RP2040 -->
+  <g transform="translate(530, 100)">
+    <!-- Board -->
+    <rect x="0" y="0" width="120" height="80" rx="5" fill="#38a169" stroke="#276749" stroke-width="2"/>
+    
+    <!-- Chip -->
+    <rect x="40" y="25" width="40" height="30" fill="#1a202c"/>
+    <text x="60" y="45" text-anchor="middle" fill="#e2e8f0" font-size="8">RP2040</text>
+    
+    <!-- LEDs -->
+    <circle cx="15" cy="15" r="5" fill="#f6e05e">
+      <animate attributeName="opacity" values="1;0.3;1" dur="0.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="30" cy="15" r="5" fill="#48bb78">
+      <animate attributeName="opacity" values="1;0.3;1" dur="0.7s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- Grove connector -->
+    <rect x="5" y="60" width="25" height="15" fill="#f6f6f6" stroke="#999"/>
+    
+    <!-- Servo header -->
+    <rect x="90" y="60" width="25" height="15" fill="#333"/>
+    
+    <text x="60" y="105" text-anchor="middle" class="label">4. Maker Pi</text>
+    <text x="60" y="120" text-anchor="middle" class="label">RP2040</text>
+    <text x="60" y="135" text-anchor="middle" class="small">(The Brain)</text>
+    
+    <!-- Thought bubble -->
+    <ellipse cx="100" cy="-15" rx="45" ry="20" fill="white" stroke="#a0aec0"/>
+    <circle cx="85" cy="5" r="5" fill="white" stroke="#a0aec0"/>
+    <circle cx="80" cy="15" r="3" fill="white" stroke="#a0aec0"/>
+    <text x="100" y="-12" text-anchor="middle" font-size="8" fill="#4a5568">if running:</text>
+    <text x="100" y="-2" text-anchor="middle" font-size="8" fill="#4a5568">servo = 90°</text>
+  </g>
+  
+  <!-- Wire to servo -->
+  <g transform="translate(620, 200)">
+    <path d="M 30 0 
+             C 50 30, 30 60, 60 80
+             C 90 100, 70 130, 90 150" 
+          stroke="#fc8181" stroke-width="4" fill="none"/>
+    <path d="M 35 0 
+             C 55 30, 35 60, 65 80
+             C 95 100, 75 130, 95 150" 
+          stroke="#1a202c" stroke-width="4" fill="none"/>
+    <path d="M 40 0 
+             C 60 30, 40 60, 70 80
+             C 100 100, 80 130, 100 150" 
+          stroke="#f6ad55" stroke-width="4" fill="none"/>
+    
+    <text x="80" y="80" class="small">PWM</text>
+    <text x="80" y="95" class="small">Signal</text>
+  </g>
+  
+  <!-- Step 5: Servo + Sign -->
+  <g transform="translate(650, 340)">
+    <!-- Servo body -->
+    <rect x="0" y="20" width="50" height="35" rx="3" fill="#4a5568"/>
+    <rect x="10" y="10" width="30" height="15" fill="#2d3748"/>
+    <circle cx="25" cy="17" r="8" fill="#1a202c"/>
+    <circle cx="25" cy="17" r="4" fill="#718096"/>
+    
+    <!-- Servo arm -->
+    <g transform="translate(25, 17)">
+      <rect x="-5" y="-40" width="10" height="45" rx="2" fill="#a0aec0" transform="rotate(45)">
+        <animateTransform attributeName="transform" type="rotate" 
+                          values="0;45;0" dur="4s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    
+    <!-- Sign -->
+    <g transform="translate(-30, -80)">
+      <rect x="0" y="0" width="100" height="50" rx="5" fill="#e53e3e" stroke="#c53030" stroke-width="2">
+        <animateTransform attributeName="transform" type="rotate" 
+                          values="0 50 80;-45 50 80;0 50 80" dur="4s" repeatCount="indefinite"/>
+      </rect>
+      <text x="50" y="20" text-anchor="middle" fill="white" font-family="Arial Black" font-size="11"
+            transform="rotate(0)">🚫 DO NOT</text>
+      <text x="50" y="38" text-anchor="middle" fill="white" font-family="Arial Black" font-size="11">DISTURB</text>
+    </g>
+    
+    <text x="25" y="75" text-anchor="middle" class="label">5. Servo</text>
+    <text x="25" y="90" text-anchor="middle" class="small">(The Muscle)</text>
+  </g>
+  
+  <!-- Step 6: Result -->
+  <g transform="translate(50, 350)">
+    <text x="0" y="0" font-size="50">😌</text>
+    <text x="60" y="20" class="label">6. Human achieves</text>
+    <text x="60" y="35" class="label">deep focus!</text>
+    <text x="60" y="55" class="small">(coworkers flee in terror)</text>
+  </g>
+  
+  <!-- Fun decorations -->
+  <text x="760" y="480" font-size="20">⚙️</text>
+  <text x="730" y="460" font-size="15">🔧</text>
+  <text x="20" y="480" font-size="12" class="small">Built with ❤️ and way too much engineering</text>
+  
+  <!-- Signature -->
+  <text x="780" y="490" text-anchor="end" class="small">v1.0 - The "I Could Have Just Used a Kitchen Timer" Edition</text>
+</svg>

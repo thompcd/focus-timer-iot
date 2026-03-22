@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      color: #eee;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      color: #00d4ff;
+      margin-bottom: 40px;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    .diagram {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 60px;
+      flex-wrap: wrap;
+    }
+    .device {
+      background: #16213e;
+      border: 2px solid #0f3460;
+      border-radius: 16px;
+      padding: 24px;
+      min-width: 280px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .device-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: #00d4ff;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .chip {
+      background: #0f3460;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 8px 0;
+    }
+    .chip-name {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+    .chip-desc {
+      font-size: 11px;
+      color: #64748b;
+    }
+    .screen {
+      background: #000;
+      border: 2px solid #333;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+      text-align: center;
+    }
+    .screen-text {
+      color: #fff;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .screen-time {
+      color: #00ff88;
+      font-size: 28px;
+      font-weight: bold;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+    .buttons {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    .btn {
+      background: #1e3a5f;
+      color: #00d4ff;
+      border: 1px solid #00d4ff;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 11px;
+    }
+    .btn.start {
+      background: #00d4ff;
+      color: #000;
+      font-weight: 600;
+    }
+    .connector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .pin {
+      background: #fbbf24;
+      color: #000;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .pin.rx { background: #34d399; }
+    .pin.tx { background: #f87171; }
+    .pin.servo { background: #a78bfa; }
+    .arrow-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .arrow {
+      font-size: 32px;
+      color: #00d4ff;
+    }
+    .arrow-label {
+      font-size: 11px;
+      color: #94a3b8;
+      text-align: center;
+      max-width: 120px;
+    }
+    .servo-box {
+      background: #16213e;
+      border: 2px solid #a78bfa;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      min-width: 160px;
+    }
+    .servo-icon {
+      font-size: 40px;
+      margin-bottom: 8px;
+    }
+    .servo-title {
+      color: #a78bfa;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .servo-desc {
+      color: #64748b;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    .data-flow {
+      margin-top: 40px;
+      text-align: center;
+    }
+    .protocol {
+      display: inline-block;
+      background: #0f3460;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 14px;
+      color: #00ff88;
+    }
+    .note {
+      margin-top: 30px;
+      text-align: center;
+      padding: 12px 20px;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid #fbbf24;
+      border-radius: 8px;
+      color: #fbbf24;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 Focus Timer System</h1>
+  
+  <div class="diagram">
+    <!-- SenseCAP Indicator -->
+    <div class="device">
+      <div class="device-title">SenseCAP Indicator D1101</div>
+      
+      <div class="chip">
+        <div class="chip-name">ESP32-S3 (Top USB)</div>
+        <div class="screen">
+          <div class="screen-text">Heads down. Be back in</div>
+          <div class="screen-time">25:00</div>
+          <div class="buttons">
+            <span class="btn">5m</span>
+            <span class="btn">15m</span>
+            <span class="btn">30m</span>
+            <span class="btn start">START</span>
+          </div>
+        </div>
+        <div class="chip-desc">4" LVGL Touch UI</div>
+      </div>
+      
+      <div class="connector">
+        Internal UART: <span class="pin tx">GPIO 19/20</span> + COBS
+      </div>
+      
+      <div class="chip">
+        <div class="chip-name">RP2040 (Bottom USB)</div>
+        <div class="chip-desc">Serial Bridge Firmware</div>
+        <div class="connector" style="margin-top: 10px;">
+          Grove: <span class="pin tx">GP20 TX</span> → <span class="pin rx">GP0 RX</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow-container">
+      <div class="arrow">→</div>
+      <div class="arrow-label">Grove Serial<br>115200 baud<br><strong>TX/RX Swapped!</strong></div>
+    </div>
+
+    <!-- Maker Pi -->
+    <div class="device">
+      <div class="device-title">Maker Pi RP2040</div>
+      
+      <div class="chip">
+        <div class="chip-name">RP2040 (CircuitPython)</div>
+        <div class="connector">
+          Grove 1: <span class="pin rx">GP0 RX</span> / <span class="pin tx">GP1 TX</span>
+        </div>
+        <div class="connector">
+          Servo: <span class="pin servo">GP15 (S4)</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <div class="servo-box">
+          <div class="servo-icon">⚙️</div>
+          <div class="servo-title">Continuous Servo</div>
+          <div class="servo-desc">throttle: 0=stop, ±0.5=spin</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="data-flow">
+    <div class="protocol">T1,25,00\n</div>
+    <div style="color: #64748b; font-size: 12px; margin-top: 8px;">
+      Protocol: T&lt;running&gt;,&lt;mm&gt;,&lt;ss&gt;\n
+    </div>
+  </div>
+
+  <div class="note">
+    ⚠️ Grove cable data lines must be crossed (TX→RX, RX→TX)
+  </div>
+</body>
+</html>
